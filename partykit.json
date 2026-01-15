@@ -1,0 +1,4 @@
+{
+  "name": "commons-game",
+  "main": "party/index.ts"
+}

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Commons Game (PartyKit)</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>Commons Game</h1>
+    <p class="muted">Tragedy of the Commons — realtime classroom game</p>
+  </header>
+
+  <main class="wrap grid">
+    <section class="card">
+      <h2>Join</h2>
+
+      <label>
+        Display name
+        <input id="name" placeholder="e.g., Student 7" maxlength="24" />
+      </label>
+
+      <label>
+        Room ID
+        <input id="room" placeholder="e.g., ABM101" maxlength="24" />
+      </label>
+
+      <label class="inline">
+        <input type="checkbox" id="host" />
+        I am the host (instructor)
+      </label>
+
+      <button id="connect">Connect</button>
+
+      <div class="status" id="status">Not connected</div>
+      <div class="muted small" id="toast"></div>
+    </section>
+
+    <section class="card">
+      <h2>Game</h2>
+
+      <div class="kpi">
+        <div><div class="label">Status</div><div class="value" id="gStatus">—</div></div>
+        <div><div class="label">Round</div><div class="value" id="gRound">—</div></div>
+        <div><div class="label">Resource</div><div class="value" id="gResource">—</div></div>
+      </div>
+
+      <div class="row">
+        <div class="pill">Players: <span id="players">—</span></div>
+        <div class="pill">Submitted: <span id="submitted">—</span></div>
+        <div class="pill">Regen next: <span id="regen">—</span></div>
+      </div>
+
+      <hr />
+
+      <h3>Your extraction</h3>
+      <div class="row">
+        <button class="choice" data-c="1">Take 1</button>
+        <button class="choice" data-c="3">Take 3</button>
+        <button class="choice" data-c="5">Take 5</button>
+      </div>
+      <div class="muted small">Selected: <span id="selected">—</span></div>
+      <div class="row">
+        <button id="submit" disabled>Submit</button>
+        <button id="clear" class="secondary" disabled>Clear</button>
+      </div>
+
+      <div id="hostPanel" class="host hidden">
+        <hr />
+        <h3>Host controls</h3>
+        <div class="row">
+          <button id="start" class="primary">Start</button>
+          <button id="advance">Advance Round</button>
+          <button id="reset" class="danger">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Last Round Summary</h2>
+      <div class="row">
+        <div class="pill">Round: <span id="sRound">—</span></div>
+        <div class="pill">Total extracted: <span id="sTotal">—</span></div>
+        <div class="pill">Before regen: <span id="sBefore">—</span></div>
+        <div class="pill">Regen added: <span id="sRegen">—</span></div>
+        <div class="pill">New resource: <span id="sNew">—</span></div>
+      </div>
+      <pre class="pre" id="sBreakdown">—</pre>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
