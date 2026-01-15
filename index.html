@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Commons Game (No Backend)</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #0b0f17; color: #e8eefc; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 18px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    h1 { margin: 0 0 6px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    h3 { margin: 0 0 10px; font-size: 16px; }
+    .card { background: #121a2a; border: 1px solid #22304b; border-radius: 14px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    label { display: block; margin: 10px 0; }
+    input, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a3a5a; background: #0e1525; color: #e8eefc; outline: none; }
+    input:focus, textarea:focus { border-color: #5a7cff; }
+    textarea { min-height: 140px; resize: vertical; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #2a3a5a; background: #1b2640; color: #e8eefc; cursor: pointer; }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .primary { background: #2c4cff; border-color: #2c4cff; }
+    .secondary { background: #0e1525; }
+    .danger { background: #a92f2f; border-color: #a92f2f; }
+    .choice { min-width: 110px; }
+    .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 6px; }
+    .kpi .label { color: #9fb1d6; font-size: 12px; }
+    .kpi .value { font-size: 22px; font-weight: 700; }
+    .pill { padding: 6px 10px; border: 1px solid #2a3a5a; border-radius: 999px; background: #0e1525; }
+    .muted { color: #9fb1d6; }
+    .small { font-size: 12px; }
+    .status { padding: 10px; border-radius: 10px; border: 1px dashed #2a3a5a; background: #0e1525; margin-top: 10px; }
+    .hidden { display: none; }
+    pre { white-space: pre-wrap; background: #0e1525; border: 1px solid #2a3a5a; border-radius: 10px; padding: 10px; margin-top: 10px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .ok { color: #78ffa6; }
+    .warn { color: #ffd36a; }
+    .bad { color: #ff8b8b; }
+    hr { border: none; border-top: 1px solid #22304b; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1>Commons Game (No Backend)</h1>
+    <p class="muted">Tragedy of the Commons — multiplayer via Zoom chat copy/paste</p>
+  </header>
+
+  <main class="wrap grid">
+    <section class="card">
+      <h2>Join</h2>
+
+      <label>
+        Display name
+        <input id="nameInput" placeholder="e.g., Student 12" maxlength="24"/>
+      </label>
+
+      <label>
+        Room ID (shared in class)
+        <input id="roomInput" placeholder="e.g., ABM101" maxlength="24"/>
+      </label>
+
+      <div class="row">
+        <button id="joinStudentBtn" class="primary">Join as Student</button>
+        <button id="joinHostBtn" class="secondary">Join as Host</button>
+      </div>
+
+      <div class="status">
+        <div><span class="muted">Mode:</span> <span id="modeSpan">—</span></div>
+        <div><span class="muted">Player ID:</span> <span id="pidSpan" class="mono">—</span></div>
+        <div><span class="muted">Room:</span> <span id="roomSpan" class="mono">—</span></div>
+      </div>
+
+      <p class="small muted">
+        No backend: students submit moves by pasting a code into Zoom chat.
+        Host copies chat back into the Host panel to compute totals.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Game State</h2>
+
+      <div class="kpi">
+        <div>
+          <div class="label">Round</div>
+          <div class="value" id="roundSpan">0</div>
+        </div>
+        <div>
+          <div class="label">Resource</div>
+          <div class="value" id="resourceSpan">100</div>
+        </div>
+        <div>
+          <div class="label">Regen next</div>
+          <div class="value" id="regenSpan">10</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="pill">Status: <span id="statusSpan" class="mono">lobby</span></div>
+        <div class="pill">Your score: <span id="scoreSpan" class="mono">0</span></div>
+      </div>
+
+      <div class="muted small" id="announcement">Join a room to begin.</div>
+
+      <hr/>
+
+      <div id="studentPanel" class="hidden">
+        <h3>Your Move (Student)</h3>
+        <div class="row">
+          <button class="choice" data-choice="1">Take 1</button>
+          <button class="choice" data-choice="3">Take 3</button>
+          <button class="choice" data-choice="5">Take 5</button>
+        </div>
+
+        <div class="row">
+          <button id="genCodeBtn" class="primary" disabled>Generate submission code</button>
+          <button id="copyCodeBtn" class="secondary" disabled>Copy</button>
+        </div>
+
+        <div class="small muted">Selected: <span id="selectedSpan" class="mono">—</span></div>
+
+        <div class="small muted" style="margin-top:10px;">
+          Paste this into <b>Zoom public chat</b>:
+        </div>
+        <pre id="codeBox" class="mono">—</pre>
+
+        <div class="small muted">
+          If the host advances to a new round, you must submit again for the new round.
+        </div>
+      </div>
+
+      <div id="hostPanel" class="hidden">
+        <h3>Host Controls</h3>
+
+        <div class="row">
+          <button id="startBtn" class="primary">Start game (Round 1)</button>
+          <button id="nextRoundBtn" class="secondary">Advance round number</button>
+          <button id="resetBtn" class="danger">Reset</button>
+        </div>
+
+        <hr/>
+
+        <h3>Compute Round from Zoom Chat</h3>
+        <p class="small muted">
+          Copy the Zoom chat lines for the current round and paste below.
+          The app will count <b>one submission per Player ID</b> (last one wins).
+        </p>
+
+        <textarea id="chatPaste" placeholder="Paste Zoom chat here..."></textarea>
+
+        <div class="row">
+          <button id="computeBtn" class="primary">Compute & Apply</button>
+          <button id="clearChatBtn" class="secondary">Clear paste box</button>
+        </div>
+
+        <div class="row">
+          <div class="pill">Parsed submissions: <span id="parsedCount" class="mono">0</span></div>
+          <div class="pill">Total extracted: <span id="totalExtracted" class="mono">0</span></div>
+          <div class="pill">Before regen: <span id="beforeRegen" class="mono">0</span></div>
+          <div class="pill">Regen added: <span id="regenAdded" class="mono">0</span></div>
+          <div class="pill">New resource: <span id="newResource" class="mono">0</span></div>
+        </div>
+
+        <pre id="breakdownBox" class="mono">—</pre>
+
+        <p class="small muted">
+          <b>Expected submission format</b> (students generate it automatically):<br/>
+          <span class="mono">ROOM R{round} {playerId} {choice}</span><br/>
+          Example: <span class="mono">ABM101 R2 P7K3 5</span>
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rules</h2>
+      <ul class="muted">
+        <li>Start resource: <span class="mono">100</span></li>
+        <li>Choices: take <span class="mono">1</span>, <span class="mono">3</span>, or <span class="mono">5</span> (points gained = amount taken)</li>
+        <li>Regen: if resource after extraction is ≥ <span class="mono">40</span>, add <span class="mono">+10</span>; else add <span class="mono">+2</span></li>
+        <li>Collapse: if resource ≤ <span class="mono">0</span>, game ends</li>
+        <li>Typical length: 5–6 rounds</li>
+      </ul>
+      <p class="small muted">
+        This is intentionally “minimal infrastructure” so the class can focus on emergence and feedback, not tooling.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Debrief Prompts</h2>
+      <ol class="muted">
+        <li>Was any single player “responsible” for collapse?</li>
+        <li>Were individual choices locally rational but globally harmful?</li>
+        <li>When did behavior shift — and why?</li>
+        <li>Which policy would stabilize the commons (quota, tax, communication, monitoring)?</li>
+      </ol>
+    </section>
+  </main>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (id) => document.getElementById(id);
+
+    function sanitizeRoomId(s) {
+      return (s || "").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
+    }
+
+    function makePlayerId() {
+      // short, memorable
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let out = "P";
+      for (let i = 0; i < 3; i++) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    }
+
+    function computeRegen(resourceAfterExtraction) {
+      return resourceAfterExtraction >= 40 ? 10 : 2;
+    }
+
+    function nowState() {
+      return JSON.parse(localStorage.getItem("commons_state_v1") || "null");
+    }
+
+    function saveState(s) {
+      localStorage.setItem("commons_state_v1", JSON.stringify(s));
+    }
+
+    function defaultState() {
+      return {
+        mode: null,          // "student" | "host"
+        roomId: null,
+        playerId: makePlayerId(),
+        displayName: null,
+
+        status: "lobby",     // lobby | active | ended
+        round: 0,
+        resource: 100,
+
+        // local (per-student) score tracking
+        scoreByPlayer: {},   // { playerId: score }
+      };
+    }
+
+    function getState() {
+      let s = nowState();
+      if (!s) {
+        s = defaultState();
+        saveState(s);
+      }
+      // ensure fields exist after updates
+      if (!s.playerId) s.playerId = makePlayerId();
+      if (!s.scoreByPlayer) s.scoreByPlayer = {};
+      return s;
+    }
+
+    function setState(patch) {
+      const s = getState();
+      const next = { ...s, ...patch };
+      saveState(next);
+      render();
+    }
+
+    // ---------- DOM refs ----------
+    const nameInput = $("nameInput");
+    const roomInput = $("roomInput");
+
+    const joinStudentBtn = $("joinStudentBtn");
+    const joinHostBtn = $("joinHostBtn");
+
+    const modeSpan = $("modeSpan");
+    const pidSpan = $("pidSpan");
+    const roomSpan = $("roomSpan");
+
+    const roundSpan = $("roundSpan");
+    const resourceSpan = $("resourceSpan");
+    const regenSpan = $("regenSpan");
+    const statusSpan = $("statusSpan");
+    const scoreSpan = $("scoreSpan");
+    const announcement = $("announcement");
+
+    const studentPanel = $("studentPanel");
+    const hostPanel = $("hostPanel");
+
+    const selectedSpan = $("selectedSpan");
+    const codeBox = $("codeBox");
+    const genCodeBtn = $("genCodeBtn");
+    const copyCodeBtn = $("copyCodeBtn");
+
+    const startBtn = $("startBtn");
+    const nextRoundBtn = $("nextRoundBtn");
+    const resetBtn = $("resetBtn");
+
+    const chatPaste = $("chatPaste");
+    const computeBtn = $("computeBtn");
+    const clearChatBtn = $("clearChatBtn");
+
+    const parsedCount = $("parsedCount");
+    const totalExtracted = $("totalExtracted");
+    const beforeRegen = $("beforeRegen");
+    const regenAdded = $("regenAdded");
+    const newResource = $("newResource");
+    const breakdownBox = $("breakdownBox");
+
+    const choiceButtons = Array.from(document.querySelectorAll("button.choice"));
+
+    // local selection (not persisted)
+    let selectedChoice = null;
+
+    // ---------- Actions ----------
+    joinStudentBtn.addEventListener("click", () => {
+      const displayName = (nameInput.value || "").trim().slice(0, 24);
+      const roomId = sanitizeRoomId(roomInput.value);
+      if (!displayName) return alert("Enter a display name.");
+      if (!roomId) return alert("Enter a valid Room ID.");
+
+      const s = getState();
+      setState({ mode: "student", displayName, roomId });
+    });
+
+    joinHostBtn.addEventListener("click", () => {
+      const displayName = (nameInput.value || "").trim().slice(0, 24) || "Host";
+      const roomId = sanitizeRoomId(roomInput.value);
+      if (!roomId) return alert("Enter a valid Room ID.");
+
+      setState({ mode: "host", displayName, roomId });
+    });
+
+    choiceButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedChoice = Number(btn.dataset.choice);
+        selectedSpan.textContent = String(selectedChoice);
+        genCodeBtn.disabled = false;
+        copyCodeBtn.disabled = true;
+        codeBox.textContent = "—";
+      });
+    });
+
+    genCodeBtn.addEventListener("click", () => {
+      const s = getState();
+      if (s.status !== "active") return alert("Game is not active yet. Wait for host to start.");
+      if (!s.roomId) return alert("Join a room first.");
+      if (s.round <= 0) return alert("Round is not set. Wait for host.");
+      if (![1,3,5].includes(selectedChoice)) return;
+
+      const code = `${s.roomId} R${s.round} ${s.playerId} ${selectedChoice}`;
+      codeBox.textContent = code;
+      copyCodeBtn.disabled = false;
+    });
+
+    copyCodeBtn.addEventListener("click", async () => {
+      const text = codeBox.textContent;
+      if (!text || text === "—") return;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyCodeBtn.textContent = "Copied!";
+        setTimeout(() => copyCodeBtn.textContent = "Copy", 900);
+      } catch {
+        alert("Could not copy automatically. Please copy manually.");
+      }
+    });
+
+    startBtn.addEventListener("click", () => {
+      const s = getState();
+      if (s.mode !== "host") return;
+      setState({ status: "active", round: 1, resource: 100 });
+    });
+
+    nextRoundBtn.addEventListener("click", () => {
+      const s = getState();
+      if (s.mode !== "host") return;
+      if (s.status !== "active") return alert("Game is not active.");
+      setState({ round: s.round + 1 });
+      // host typically clears paste box for the next round
+      chatPaste.value = "";
+      parsedCount.textContent = "0";
+      breakdownBox.textContent = "—";
+    });
+
+    resetBtn.addEventListener("click", () => {
+      const keepPid = getState().playerId;
+      const fresh = defaultState();
+      fresh.playerId = keepPid; // keep same ID so students don't break habit
+      saveState(fresh);
+      selectedChoice = null;
+      render();
+    });
+
+    clearChatBtn.addEventListener("click", () => {
+      chatPaste.value = "";
+    });
+
+    computeBtn.addEventListener("click", () => {
+      const s = getState();
+      if (s.mode !== "host") return;
+      if (s.status !== "active" || s.round <= 0) return alert("Start the game first.");
+      if (!s.roomId) return alert("Join a room first.");
+
+      const text = chatPaste.value || "";
+      const parsed = parseChat(text, s.roomId, s.round);
+
+      // totals
+      const choices = Object.values(parsed.submissions); // {pid: choice}
+      const total = choices.reduce((a,b) => a + b, 0);
+
+      const before = s.resource - total;
+      const regen = before <= 0 ? 0 : computeRegen(before);
+      const newRes = before + regen;
+
+      // update local score ledger for each pid (host local view only)
+      const nextScores = { ...(s.scoreByPlayer || {}) };
+      for (const [pid, choice] of Object.entries(parsed.submissions)) {
+        nextScores[pid] = (nextScores[pid] || 0) + choice;
+      }
+
+      // update game state
+      let nextStatus = s.status;
+      if (newRes <= 0) nextStatus = "ended";
+
+      setState({
+        resource: newRes,
+        status: nextStatus,
+        scoreByPlayer: nextScores
+      });
+
+      // render summary numbers
+      parsedCount.textContent = String(Object.keys(parsed.submissions).length);
+      totalExtracted.textContent = String(total);
+      beforeRegen.textContent = String(before);
+      regenAdded.textContent = String(regen);
+      newResource.textContent = String(newRes);
+
+      breakdownBox.textContent =
+        `Round ${s.round} breakdown\n` +
+        `- Take 1: ${parsed.counts[1]}\n` +
+        `- Take 3: ${parsed.counts[3]}\n` +
+        `- Take 5: ${parsed.counts[5]}\n\n` +
+        `Unique players counted: ${Object.keys(parsed.submissions).length}\n` +
+        (parsed.ignored.length ? `Ignored lines: ${parsed.ignored.length}\n` : "") +
+        (parsed.duplicates ? `Duplicate submissions handled: last submission per Player ID used.\n` : "");
+
+      if (newRes <= 0) {
+        alert("Commons collapsed (resource ≤ 0). Game ended.");
+      }
+    });
+
+    function parseChat(text, roomId, round) {
+      // Accept lines that contain: ROOM R{round} PID CHOICE
+      // Example: ABM101 R2 P7K3 5
+      // We'll parse anywhere in the line (students might have names, timestamps)
+      const lines = text.split(/\r?\n/);
+
+      const wantRoom = roomId;
+      const wantRound = `R${round}`;
+
+      const submissions = {}; // pid -> choice (last wins)
+      const counts = { 1: 0, 3: 0, 5: 0 };
+      const ignored = [];
+      let duplicates = false;
+
+      // regex finds patterns even if extra stuff surrounds it
+      const re = /([A-Za-z0-9_-]{1,24})\s+(R\d+)\s+(P[A-Z0-9]{3})\s+([135])/g;
+
+      for (const line of lines) {
+        let matchedAny = false;
+        let m;
+        while ((m = re.exec(line)) !== null) {
+          matchedAny = true;
+          const r = m[1];
+          const rd = m[2];
+          const pid = m[3];
+          const choice = Number(m[4]);
+
+          if (r !== wantRoom || rd !== wantRound) continue;
+
+          if (submissions[pid] != null) duplicates = true;
+          submissions[pid] = choice;
+        }
+        if (!matchedAny && line.trim()) ignored.push(line);
+      }
+
+      // compute counts from deduped submissions
+      for (const choice of Object.values(submissions)) {
+        counts[choice] = (counts[choice] || 0) + 1;
+      }
+
+      return { submissions, counts, ignored, duplicates };
+    }
+
+    // ---------- Render ----------
+    function render() {
+      const s = getState();
+
+      modeSpan.textContent = s.mode || "—";
+      pidSpan.textContent = s.playerId || "—";
+      roomSpan.textContent = s.roomId || "—";
+
+      roundSpan.textContent = String(s.round ?? 0);
+      resourceSpan.textContent = String(s.resource ?? 100);
+      const regenNext = computeRegen(s.resource ?? 100);
+      regenSpan.textContent = String(regenNext);
+      statusSpan.textContent = s.status || "lobby";
+
+      // show local score for THIS player only
+      const myScore = (s.scoreByPlayer && s.scoreByPlayer[s.playerId]) ? s.scoreByPlayer[s.playerId] : 0;
+      scoreSpan.textContent = String(myScore);
+
+      const joined = !!s.roomId && !!s.mode;
+
+      studentPanel.classList.toggle("hidden", !(joined && s.mode === "student"));
+      hostPanel.classList.toggle("hidden", !(joined && s.mode === "host"));
+
+      // announcement
+      if (!joined) {
+        announcement.textContent = "Join a room to begin.";
+      } else if (s.status === "lobby") {
+        announcement.textContent = "Lobby: Host will start the game.";
+      } else if (s.status === "active") {
+        announcement.textContent = `Round ${s.round}: students submit (zoom chat) → host computes.`;
+      } else if (s.status === "ended") {
+        announcement.textContent = "Game ended (commons collapsed or host stopped).";
+      }
+
+      // student buttons availability
+      genCodeBtn.disabled = !(s.mode === "student" && s.status === "active" && selectedChoice != null);
+      copyCodeBtn.disabled = (codeBox.textContent === "—");
+
+      // preload inputs if state exists
+      if (s.displayName && !nameInput.value) nameInput.value = s.displayName;
+      if (s.roomId && !roomInput.value) roomInput.value = s.roomId;
+    }
+
+    render();
+  </script>
+</body>
+</html>
